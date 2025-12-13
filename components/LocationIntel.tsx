@@ -128,7 +128,7 @@ const LocationIntel: React.FC<LocationIntelProps> = ({ city, locationName, mapPo
                         </div>
                      </div>
                      <div className="p-3 bg-black/50 rounded border border-stone-800 text-sm font-mono text-stone-300 leading-relaxed">
-                        <span className="text-amber-600 font-bold block mb-1" > &gt;&gt;&gt; BULGU: </span>
+                        <span className="text-amber-600 font-bold block mb-1"> &gt;&gt;&gt; BULGU: </span>
                        {activePoint.description}
                      </div>
                      <button onClick={() => setActivePoint(null)} className="absolute top-2 right-2 text-stone-600 hover:text-stone-300"><X size={16}/></button>
