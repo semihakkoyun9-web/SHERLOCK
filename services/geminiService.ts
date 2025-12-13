@@ -1,9 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Scenario, Department } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// REMOVED GLOBAL INITIALIZATION TO PREVENT CRASH ON LOAD
+// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_NAME = "gemini-2.5-flash";
+
+// Helper to safely get AI instance
+// This prevents the "API Key must be set" error from crashing the whole app on Vercel startup
+const getAI = () => {
+  const apiKey = process.env.API_KEY || "MISSING_KEY_PLACEHOLDER"; 
+  return new GoogleGenAI({ apiKey });
+};
 
 export const generateScenario = async (department: Department, language: 'tr' | 'en' = 'tr'): Promise<Scenario> => {
   
@@ -125,6 +133,9 @@ export const generateScenario = async (department: Department, language: 'tr' | 
   `;
 
   try {
+    // Initialize AI here (Lazy Load)
+    const ai = getAI();
+    
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
@@ -221,6 +232,9 @@ export const checkAnswerWithAI = async (scenario: Scenario, question: string, la
   `;
 
   try {
+    // Initialize AI here (Lazy Load)
+    const ai = getAI();
+    
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
@@ -244,6 +258,9 @@ export const getLocationIntel = async (city: string, locationName: string, langu
   `;
 
   try {
+    // Initialize AI here (Lazy Load)
+    const ai = getAI();
+    
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
