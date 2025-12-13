@@ -1,0 +1,8 @@
+{
+  "name": " Dedektif masası 9.12.2025",
+  "description": " interaktif bir cinayet gizemi çözme oyunu. Google Maps verileriyle zenginleştirilmiş olay yeri incelemesi içerir.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
