@@ -265,7 +265,7 @@ const Layout: React.FC<LayoutProps> = ({
      : `ml-1 p-1 rounded-full transition-transform hover:scale-110 ${theme.button}`;
 
   const handleOpenBombGame = () => {
-     window.open('https://ai.studio/apps/drive/18KAB37Ahj__0VAZXZuAx8Oaskk_aZfZh', '_blank');
+     window.open('https://bomba-imha.vercel.app/', '_blank');
   };
 
   // Translation Helper
