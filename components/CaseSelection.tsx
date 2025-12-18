@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { CaseFile, Department } from '../types';
-import { FolderPlus, FolderOpen, Trash2, FileText, AlertTriangle, Lock } from 'lucide-react';
+// Fixed: Added missing icon imports (Database, Radio, Activity)
+import { FolderPlus, FolderOpen, Trash2, FileText, Lock, Database, Radio, Activity } from 'lucide-react';
 
 interface CaseSelectionProps {
   department: Department;
@@ -21,7 +23,6 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
   onDeleteCase, 
   isDarkMode, 
   language,
-  userEnergy
 }) => {
   const isEn = language === 'en';
   
@@ -39,9 +40,9 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
   const canCreate = cases.length < maxCases;
 
   return (
-    <div className="animate-fade-in w-full flex flex-col gap-6">
+    <div className="animate-slide-up w-full flex flex-col gap-6 max-w-7xl mx-auto h-full">
        {/* HEADER */}
-       <div className={`p-6 rounded-xl border flex flex-col md:flex-row items-center justify-between gap-4 ${isDarkMode ? `bg-${color}-950/20 border-${color}-900` : `bg-${color}-50 border-${color}-200`}`}>
+       <div className={`p-6 rounded-xl border-2 flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500 ${isDarkMode ? `bg-${color}-950/20 border-${color}-900` : `bg-${color}-50 border-${color}-200`}`}>
           <div>
              <h2 className={`text-3xl font-bold font-typewriter uppercase ${isDarkMode ? `text-${color}-400` : `text-${color}-900`}`}>
                 {department === 'homicide' ? (isEn ? "HOMICIDE ARCHIVES" : "CİNAYET ARŞİVİ") : 
@@ -59,13 +60,13 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
        </div>
 
        {/* GRID */}
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
           
           {/* NEW CASE BUTTON */}
           <button 
              onClick={onNewCase}
              disabled={!canCreate}
-             className={`h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all
+             className={`h-56 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all animate-slide-up stagger-1
                 ${!canCreate 
                    ? 'opacity-50 cursor-not-allowed border-stone-700 bg-stone-900/50' 
                    : (isDarkMode 
@@ -76,8 +77,8 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
           >
              {canCreate ? (
                 <>
-                   <div className={`p-4 rounded-full ${isDarkMode ? `bg-${color}-900/30 text-${color}-400` : `bg-${color}-100 text-${color}-600`}`}>
-                      <FolderPlus size={32} />
+                   <div className={`p-5 rounded-full ${isDarkMode ? `bg-${color}-900/30 text-${color}-400` : `bg-${color}-100 text-${color}-600`}`}>
+                      <FolderPlus size={36} />
                    </div>
                    <span className={`font-bold font-typewriter uppercase ${isDarkMode ? 'text-stone-300' : 'text-stone-700'}`}>
                       {isEn ? "NEW CASE FILE" : "YENİ VAKA DOSYASI"}
@@ -88,15 +89,15 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
                 </>
              ) : (
                 <>
-                   <Lock size={32} className="text-stone-600" />
+                   <Lock size={36} className="text-stone-600" />
                    <span className="text-stone-500 font-bold">{isEn ? "CABINET FULL" : "DOLAP DOLU"}</span>
                 </>
              )}
           </button>
 
           {/* EXISTING CASES */}
-          {cases.map((caseFile) => (
-             <div key={caseFile.id} className={`h-48 relative rounded-xl border flex flex-col p-5 transition-all hover:shadow-lg group ${isDarkMode ? 'bg-stone-900 border-stone-700 hover:border-stone-500' : 'bg-white border-stone-200 hover:border-stone-400'}`}>
+          {cases.map((caseFile, idx) => (
+             <div key={caseFile.id} className={`h-56 relative rounded-xl border-2 flex flex-col p-6 transition-all hover:shadow-xl group animate-slide-up stagger-${(idx % 4) + 1} ${isDarkMode ? 'bg-stone-900 border-stone-800 hover:border-stone-500' : 'bg-white border-stone-200 hover:border-stone-400 shadow-lg'}`}>
                 {/* STATUS BADGE */}
                 <div className="absolute top-4 right-4">
                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase border ${
@@ -108,35 +109,41 @@ const CaseSelection: React.FC<CaseSelectionProps> = ({
                    </span>
                 </div>
 
-                <div className={`mb-3 ${isDarkMode ? `text-${color}-400` : `text-${color}-600`}`}>
-                   <FileText size={28} />
+                <div className={`mb-4 ${isDarkMode ? `text-${color}-400` : `text-${color}-600`}`}>
+                   <FileText size={32} />
                 </div>
                 
-                <h3 className={`font-bold font-typewriter text-lg leading-tight mb-1 truncate ${isDarkMode ? 'text-stone-200' : 'text-stone-800'}`}>
+                <h3 className={`font-bold font-typewriter text-xl leading-tight mb-2 line-clamp-2 ${isDarkMode ? 'text-stone-200' : 'text-stone-800'}`}>
                    {caseFile.title}
                 </h3>
-                <p className="text-xs text-stone-500 font-mono mb-auto">
+                <p className="text-xs text-stone-500 font-mono mb-auto opacity-60">
                    {caseFile.createdAt} • ID: {caseFile.id.slice(-4)}
                 </p>
 
-                <div className="flex gap-2 mt-4 pt-4 border-t border-dashed border-stone-700/50">
+                <div className="flex gap-3 mt-6 pt-6 border-t border-dashed border-stone-700/50">
                    <button 
                       onClick={() => onOpenCase(caseFile)}
-                      className={`flex-1 py-2 rounded text-xs font-bold uppercase flex items-center justify-center gap-2 transition-colors ${isDarkMode ? 'bg-stone-800 hover:bg-stone-700 text-stone-300' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'}`}
+                      className={`flex-1 py-3 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 ${isDarkMode ? 'bg-stone-800 hover:bg-stone-700 text-stone-300 border border-stone-700' : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300'}`}
                    >
-                      <FolderOpen size={14} /> {isEn ? "OPEN" : "AÇ"}
+                      <FolderOpen size={16} /> {isEn ? "OPEN" : "AÇ"}
                    </button>
                    <button 
                       onClick={(e) => { e.stopPropagation(); onDeleteCase(caseFile.id); }}
-                      className={`px-3 rounded hover:bg-red-900/30 text-stone-500 hover:text-red-500 transition-colors`}
+                      className={`p-3 rounded-lg hover:bg-red-900/30 text-stone-600 hover:text-red-500 transition-colors border border-transparent hover:border-red-900/50`}
                       title={isEn ? "Destroy File" : "Dosyayı İmha Et"}
                    >
-                      <Trash2 size={16} />
+                      <Trash2 size={20} />
                    </button>
                 </div>
              </div>
           ))}
+       </div>
 
+       {/* Visual Filler for bottom */}
+       <div className="mt-auto pt-10 border-t border-stone-800 opacity-20 flex justify-center gap-10 grayscale">
+          <div className="flex flex-col items-center gap-1"><Database size={20}/><span className="text-[8px] font-mono tracking-widest">ARCHIVE_V9</span></div>
+          <div className="flex flex-col items-center gap-1"><Radio size={20}/><span className="text-[8px] font-mono tracking-widest">ENCRYPTED_SIG</span></div>
+          <div className="flex flex-col items-center gap-1"><Activity size={20}/><span className="text-[8px] font-mono tracking-widest">CPU_OPTIMIZED</span></div>
        </div>
     </div>
   );

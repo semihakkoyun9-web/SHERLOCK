@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { getLocationIntel } from '../services/geminiService';
 import { MapPin, Loader, Navigation, AlertTriangle, Scan, Search, Target, Skull, Fingerprint, DoorOpen, X, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +10,7 @@ interface LocationIntelProps {
   mapPoints?: MapPoint[];
 }
 
-const LocationIntel: React.FC<LocationIntelProps> = ({ city, locationName, mapPoints }) => {
+const LocationIntel: React.FC<LocationIntelProps> = memo(({ city, locationName, mapPoints }) => {
   const [intel, setIntel] = useState<string | null>(null);
   const [sources, setSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -217,6 +217,6 @@ const LocationIntel: React.FC<LocationIntelProps> = ({ city, locationName, mapPo
       </div>
     </div>
   );
-};
+});
 
 export default LocationIntel;

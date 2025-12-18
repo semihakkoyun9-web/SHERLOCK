@@ -1,10 +1,8 @@
-
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { Scenario, ChatMessage } from '../types';
 import { checkAnswerWithAI } from '../services/geminiService';
 import { checkOfflineAnswer } from '../services/offlineCaseService';
-import { Send, User, Bot, Lock, HardDrive } from 'lucide-react';
+import { Send, User, Bot, Lock, HardDrive, Cpu, ShieldCheck } from 'lucide-react';
 
 interface InterrogationRoomProps {
   scenario: Scenario;
@@ -17,9 +15,9 @@ interface InterrogationRoomProps {
   isAiGenerated?: boolean;
 }
 
-const BASE_QUESTIONS = 4; // Set to 4 as per request
+const BASE_QUESTIONS = 4;
 
-const InterrogationRoom: React.FC<InterrogationRoomProps> = ({ 
+const InterrogationRoom: React.FC<InterrogationRoomProps> = memo(({ 
   scenario, 
   initialMessages, 
   initialQuestionCount, 
@@ -36,11 +34,12 @@ const InterrogationRoom: React.FC<InterrogationRoomProps> = ({
     {
       id: 'welcome',
       sender: 'ai',
-      text: `Adli Tıp Laboratuvarı'na hoş geldiniz. Veritabanına erişim sağlandı.
+      text: `Merkez Veri Portalı Aktif. Kimlik doğrulandı: Dedektif.
 
-DİKKAT: Kaynak kısıtlamaları nedeniyle sadece ${MAX_QUESTIONS} adet sorgu hakkınız bulunmaktadır. Sorularınızı dikkatli seçin. 
+Sorgu limiti: ${MAX_QUESTIONS} birim. 
+Sistem yanıtları: "Affirmative", "Negative" veya "Unknown" protokollerine dayanır.
 
-${isAiGenerated ? '"Evet/Hayır" ve "Bilmiyorum" formatında cevaplar alabilirsiniz.' : '[ÇEVRİMDIŞI MOD] Basit anahtar kelimeler kullanın (Örn: "Katil", "Ceset", "Motif").'}`,
+${isAiGenerated ? 'Yapay zeka katmanı devrede. Doğal dilde sorgu yapılabilir.' : '[OFFLINE] Yerel indeksler kullanılıyor. Anahtar kelimelere odaklanın.'}`,
       timestamp: new Date()
     }
   ]);
@@ -58,7 +57,6 @@ ${isAiGenerated ? '"Evet/Hayır" ve "Bilmiyorum" formatında cevaplar alabilirsi
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // Sync state with parent whenever local state changes
   useEffect(() => {
     onStateUpdate(messages, questionCount);
   }, [messages, questionCount, onStateUpdate]);
@@ -84,12 +82,10 @@ ${isAiGenerated ? '"Evet/Hayır" ve "Bilmiyorum" formatında cevaplar alabilirsi
 
     try {
       let answer = "";
-      
       if (isAiGenerated) {
         answer = await checkAnswerWithAI(scenario, userMsg.text);
       } else {
-        // Simulate network delay for effect
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 800));
         answer = checkOfflineAnswer(scenario, userMsg.text);
       }
       
@@ -107,23 +103,16 @@ ${isAiGenerated ? '"Evet/Hayır" ve "Bilmiyorum" formatında cevaplar alabilirsi
           setMessages([...updatedMessages, {
             id: 'system-limit',
             sender: 'ai',
-            text: '--- BAĞLANTI SONLANDIRILDI: GÜNLÜK SORGU LİMİTİ AŞILDI ---',
+            text: '>>> KRİTİK HATA: SORGU LİMİTİ AŞILDI. BAĞLANTI KESİLİYOR...',
             timestamp: new Date()
           }]);
-        }, 1000);
+        }, 1200);
       } else {
         setMessages(updatedMessages);
       }
 
     } catch (error) {
-      console.error(error);
-      const errorMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: 'Sistem hatası. Lütfen tekrar deneyin.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, { id: 'err', sender: 'ai', text: 'VERİ AKIŞI KESİLDİ. TEKRAR DENEYİN.', timestamp: new Date() }]);
     } finally {
       setIsLoading(false);
     }
@@ -132,85 +121,102 @@ ${isAiGenerated ? '"Evet/Hayır" ve "Bilmiyorum" formatında cevaplar alabilirsi
   const remainingQuestions = MAX_QUESTIONS - questionCount;
 
   return (
-    <div className={`flex flex-col h-[600px] animate-fade-in rounded-lg overflow-hidden border ${isDarkMode ? 'bg-black/40 border-stone-800' : 'bg-white border-stone-200 shadow-md'}`}>
-      <div className={`flex items-center justify-between border-b p-3 ${isDarkMode ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-stone-100'}`}>
-        <h2 className="text-lg font-typewriter text-amber-500 flex items-center gap-2">
-          <HardDrive size={18} /> {isAiGenerated ? 'Adli Tıp Terminali' : 'Yerel Arşiv (Offline)'}
-        </h2>
+    <div className={`flex flex-col h-[650px] animate-slide-up rounded-2xl overflow-hidden border-2 shadow-2xl transition-all duration-700 ${isDarkMode ? 'bg-black/60 border-stone-800' : 'bg-white border-stone-200'}`} style={{ transform: 'translateZ(0)' }}>
+      <div className={`flex items-center justify-between border-b-2 p-4 ${isDarkMode ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-stone-100'}`}>
         <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-stone-500 font-mono uppercase">İşlem Kapasitesi</span>
-            <div className="flex gap-1">
-               {Array.from({length: MAX_QUESTIONS}).map((_, i) => (
-                 <div 
-                   key={i} 
-                   className={`w-2 h-4 rounded-sm border transition-all duration-300 ${i < remainingQuestions ? 'bg-amber-600 shadow-[0_0_8px_rgba(217,119,6,0.6)] border-stone-800' : (isDarkMode ? 'bg-stone-900 border-stone-800 opacity-30' : 'bg-stone-300 border-stone-400 opacity-30')}`}
-                 />
-               ))}
-            </div>
+          <div className="p-2 bg-amber-600/10 rounded-lg"><Cpu size={20} className="text-amber-500 animate-spin-slow" /></div>
+          <div>
+             <h2 className="text-sm font-bold font-typewriter text-amber-500 uppercase tracking-widest">{isAiGenerated ? 'Forensic DB Terminal' : 'Local Archive V3'}</h2>
+             <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-[8px] text-stone-500 font-mono font-bold uppercase tracking-tighter">SECURE_LINK: ESTABLISHED</span>
+             </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[9px] text-stone-500 font-mono font-bold uppercase opacity-50">{isDarkMode ? 'THREAD_CAPACITY' : 'SORGULAMA KAPASİTESİ'}</span>
+          <div className="flex gap-1.5">
+             {Array.from({length: MAX_QUESTIONS}).map((_, i) => (
+               <div 
+                 key={i} 
+                 className={`w-3 h-5 rounded-sm border transition-all duration-500 ${i < remainingQuestions ? 'bg-amber-600 shadow-[0_0_12px_rgba(217,119,6,0.6)] border-amber-400' : (isDarkMode ? 'bg-stone-900 border-stone-800 opacity-20' : 'bg-stone-300 border-stone-400 opacity-30')}`}
+               />
+             ))}
           </div>
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto space-y-4 p-4 font-mono ${isDarkMode ? 'bg-[url("https://www.transparenttextures.com/patterns/carbon-fibre.png")]' : 'bg-slate-50'}`}>
-        {messages.map((msg) => (
+      <div className={`flex-1 overflow-y-auto space-y-6 p-6 font-mono custom-scrollbar ${isDarkMode ? 'bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.8)),url("https://www.transparenttextures.com/patterns/carbon-fibre.png")]' : 'bg-slate-50'}`}>
+        {messages.map((msg, idx) => (
           <div 
             key={msg.id} 
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
+            style={{ animationDelay: '0.1s', transform: 'translateZ(0)' }}
           >
             <div 
               className={`
-                max-w-[85%] rounded p-3 text-sm leading-relaxed flex gap-3 shadow-lg
+                max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed flex gap-4 shadow-2xl relative
                 ${msg.sender === 'user' 
-                  ? (isDarkMode ? 'bg-stone-800 text-stone-100 border-l-2 border-stone-500' : 'bg-blue-600 text-white border-l-2 border-blue-400')
-                  : (isDarkMode ? 'bg-black/80 border-l-2 border-amber-600 text-amber-500/90' : 'bg-white border-l-2 border-amber-500 text-amber-800 shadow-sm')
+                  ? (isDarkMode ? 'bg-stone-800 text-stone-100 border-r-4 border-stone-600 rounded-tr-none' : 'bg-blue-700 text-white border-r-4 border-blue-500 rounded-tr-none')
+                  : (isDarkMode ? 'bg-black/90 border-l-4 border-amber-600 text-amber-500/90 rounded-tl-none' : 'bg-white border-l-4 border-amber-500 text-amber-900 shadow-sm rounded-tl-none')
                 }
               `}
             >
-              <div className="shrink-0 mt-0.5 opacity-70">
-                {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
+              <div className={`shrink-0 p-2 rounded-xl h-fit ${msg.sender === 'user' ? 'bg-white/10' : 'bg-amber-600/10'}`}>
+                {msg.sender === 'user' ? <User size={16} /> : <Bot size={16} />}
               </div>
-              <div>
-                <p className={msg.sender === 'ai' ? 'font-typewriter' : ''}>{msg.text}</p>
-                {msg.sender === 'ai' && msg.id === 'system-limit' && (
-                  <div className="mt-2 text-red-500 font-bold tracking-widest text-xs border-t border-red-900/30 pt-1">
-                    [OFFLINE]
-                  </div>
-                )}
+              <div className="flex-1">
+                <p className={`${msg.sender === 'ai' ? 'font-typewriter' : 'font-sans font-medium'} leading-snug`}>{msg.text}</p>
+                <div className="mt-2 text-[8px] opacity-30 font-mono tracking-widest uppercase">
+                   {msg.sender === 'user' ? 'ENCRYPTED_SIG: USER_DET_8821' : 'TR_LOG_TRACE: AI_CORE_NODE_X'}
+                </div>
               </div>
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className={`border rounded p-2 px-4 flex gap-2 items-center ${isDarkMode ? 'bg-black/50 border-stone-800' : 'bg-white border-stone-300'}`}>
-               <Bot size={14} className="text-stone-600" />
-               <span className="text-xs text-stone-500 animate-pulse font-mono">Veritabanı taranıyor...</span>
+          <div className="flex justify-start animate-pulse">
+            <div className={`border-2 rounded-2xl p-3 px-6 flex gap-3 items-center ${isDarkMode ? 'bg-black/50 border-stone-800' : 'bg-white border-stone-300'}`}>
+               <Bot size={18} className="text-amber-500 animate-bounce" />
+               <div className="flex flex-col">
+                  <span className="text-[10px] text-amber-500 font-mono font-bold">ANALYZING QUERY...</span>
+                  <div className="flex gap-1 mt-1">
+                    <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse"></div>
+                    <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                    <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                  </div>
+               </div>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className={`relative p-2 border-t ${isDarkMode ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'}`}>
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          disabled={remainingQuestions <= 0 || isLoading || isCaseSolved}
-          placeholder={isCaseSolved ? "Vaka kapandı. Terminal devre dışı." : (remainingQuestions > 0 ? "Soru girin..." : "Sorgu hakkı doldu.")}
-          className={`w-full border rounded pl-4 pr-12 py-3 focus:outline-none focus:border-amber-700/50 text-sm font-mono transition-all placeholder:text-stone-500 ${isDarkMode ? 'bg-stone-900 border-stone-800 text-stone-200 focus:bg-stone-800' : 'bg-white border-stone-300 text-stone-800 focus:bg-stone-50'}`}
-        />
-        <button
-          type="submit"
-          disabled={!inputText.trim() || isLoading || remainingQuestions <= 0 || isCaseSolved}
-          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-amber-500 disabled:text-stone-400 disabled:hover:text-stone-400 transition-colors"
-        >
-          {remainingQuestions > 0 && !isCaseSolved ? <Send size={16} /> : <Lock size={16} />}
-        </button>
+      <form onSubmit={handleSend} className={`p-4 border-t-2 ${isDarkMode ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'} transition-all focus-within:ring-2 focus-within:ring-amber-500/20`}>
+        <div className="relative flex items-center gap-3">
+           <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-stone-900 text-stone-500' : 'bg-stone-100 text-stone-400'}`}>
+              <ShieldCheck size={20} className={remainingQuestions > 0 ? 'text-green-500 animate-pulse' : 'text-stone-500'} />
+           </div>
+           <input
+             type="text"
+             value={inputText}
+             onChange={(e) => setInputText(e.target.value)}
+             disabled={remainingQuestions <= 0 || isLoading || isCaseSolved}
+             placeholder={isCaseSolved ? "SORGU OTURUMU SONLANDI." : (remainingQuestions > 0 ? "KRİTİK SORU GİRİN..." : "KAPASİTE DOLDU.")}
+             className={`flex-1 bg-transparent py-4 text-sm font-bold font-mono focus:outline-none placeholder:opacity-30 ${isDarkMode ? 'text-stone-200' : 'text-stone-800'}`}
+           />
+           <button
+             type="submit"
+             disabled={!inputText.trim() || isLoading || remainingQuestions <= 0 || isCaseSolved}
+             className={`p-4 rounded-xl transition-all shadow-xl active:scale-90 flex items-center justify-center
+                ${remainingQuestions > 0 && !isCaseSolved ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-stone-800 text-stone-600 cursor-not-allowed'}`}
+           >
+             {remainingQuestions > 0 && !isCaseSolved ? <Send size={20} /> : <Lock size={20} />}
+           </button>
+        </div>
       </form>
     </div>
   );
-};
+});
 
 export default InterrogationRoom;

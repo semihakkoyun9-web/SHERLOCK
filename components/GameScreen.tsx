@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { CaseFile, Suspect, ChatMessage, UserProfile } from '../types';
 import { FileText, Users, Search, MapPin, MessageSquare, AlertTriangle, Fingerprint, Siren, Skull, FolderOpen, ArrowLeft, Terminal, Shield, Video, Activity, Binary, Mic, MicOff, Send } from 'lucide-react';
 import InterrogationRoom from './InterrogationRoom';
+// Add missing LocationIntel import
 import LocationIntel from './LocationIntel';
 import { getThemeColors } from './Layout';
 
@@ -12,11 +14,13 @@ interface GameScreenProps {
   isDarkMode: boolean;
   userProfile: UserProfile;
   language?: 'tr' | 'en';
+  // Added missing brightness prop
+  brightness: number;
 }
 
 type Tab = 'case' | 'suspects' | 'clues' | 'interrogation' | 'location' | 'special';
 
-const GameScreen: React.FC<GameScreenProps> = ({ caseFile, onUpdateCase, onReturnToDesk, isDarkMode, userProfile, language = 'tr' }) => {
+const GameScreen: React.FC<GameScreenProps> = memo(({ caseFile, onUpdateCase, onReturnToDesk, isDarkMode, userProfile, language = 'tr', brightness }) => {
   const [activeTab, setActiveTab] = useState<Tab>((caseFile.lastActiveTab as Tab) || 'case');
   const [suspectToAccuse, setSuspectToAccuse] = useState<Suspect | null>(null);
   
@@ -31,57 +35,60 @@ const GameScreen: React.FC<GameScreenProps> = ({ caseFile, onUpdateCase, onRetur
   const isRedNotice = caseFile.isRedNotice;
   const isEn = language === 'en';
 
-  const realKiller = scenario.suspects.find(s => s.isKiller);
-  const activeDetective = userProfile.detectives.find(d => d.id === userProfile.selectedDetectiveId);
+  const realKiller = useMemo(() => scenario.suspects.find(s => s.isKiller), [scenario.suspects]);
+  const activeDetective = useMemo(() => userProfile.detectives.find(d => d.id === userProfile.selectedDetectiveId), [userProfile.detectives, userProfile.selectedDetectiveId]);
   const bonusQuestions = activeDetective?.bonus.maxQuestions || 0;
 
-  // Theme Integration
-  const theme = getThemeColors(userProfile.activeThemeId, dept, isDarkMode, !isDarkMode && false, !isDarkMode);
+  // Theme Integration - Fixed: getThemeColors expects 4 arguments (activeTheme, department, isDarkMode, brightness)
+  const theme = useMemo(() => getThemeColors(userProfile.activeThemeId, dept, isDarkMode, brightness), [userProfile.activeThemeId, dept, isDarkMode, brightness]);
   
   // Dynamic Styles based on theme
   const cardBase = `${theme.modalBg} border ${theme.modalBorder}`;
   const textMain = theme.text;
 
-  const deptConfig = {
-    homicide: {
-      labels: {
-        victim: isEn ? 'Victim' : 'Kurban',
-        cause: isEn ? 'Cause of Death' : 'Ölüm Sebebi',
-        specialTab: isEn ? 'Autopsy' : 'Otopsi',
-        clues: isEn ? 'Crime Scene Evidence' : 'Olay Yeri Delilleri'
+  const deptConfig = useMemo(() => {
+    const configs = {
+      homicide: {
+        labels: {
+          victim: isEn ? 'Victim' : 'Kurban',
+          cause: isEn ? 'Cause of Death' : 'Ölüm Sebebi',
+          specialTab: isEn ? 'Autopsy' : 'Otopsi',
+          clues: isEn ? 'Crime Scene Evidence' : 'Olay Yeri Delilleri'
+        },
+        icons: { special: <Activity size={16} />, victim: <Users size={24} /> },
+        colors: { accent: 'text-red-500', border: 'border-red-800', button: 'bg-red-800 hover:bg-red-700' }
       },
-      icons: { special: <Activity size={16} />, victim: <Users size={24} /> },
-      colors: { accent: 'text-red-500', border: 'border-red-800', button: 'bg-red-800 hover:bg-red-700' }
-    },
-    cyber: {
-      labels: {
-        victim: isEn ? 'Target System' : 'Hedef Sistem',
-        cause: isEn ? 'Attack Vector' : 'Saldırı Vektörü',
-        specialTab: isEn ? 'Terminal' : 'Terminal',
-        clues: isEn ? 'Digital Footprint' : 'Dijital İzi'
+      cyber: {
+        labels: {
+          victim: isEn ? 'Target System' : 'Hedef Sistem',
+          cause: isEn ? 'Attack Vector' : 'Saldırı Vektörü',
+          specialTab: isEn ? 'Terminal' : 'Terminal',
+          clues: isEn ? 'Digital Footprint' : 'Dijital İzi'
+        },
+        icons: { special: <Terminal size={16} />, victim: <Binary size={24} /> },
+        colors: { accent: 'text-green-500', border: 'border-green-800', button: 'bg-green-800 hover:bg-green-700' }
       },
-      icons: { special: <Terminal size={16} />, victim: <Binary size={24} /> },
-      colors: { accent: 'text-green-500', border: 'border-green-800', button: 'bg-green-800 hover:bg-green-700' }
-    },
-    theft: {
-      labels: {
-        victim: isEn ? 'Victim Org.' : 'Mağdur Kurum',
-        cause: isEn ? 'Stolen Item' : 'Çalınan Nesne',
-        specialTab: 'CCTV',
-        clues: isEn ? 'Physical Evidence' : 'Fiziksel Kanıtlar'
-      },
-      icons: { special: <Video size={16} />, victim: <Shield size={24} /> },
-      colors: { accent: 'text-amber-500', border: 'border-amber-800', button: 'bg-amber-700 hover:bg-amber-600' }
-    }
-  };
+      theft: {
+        labels: {
+          victim: isEn ? 'Victim Org.' : 'Mağdur Kurum',
+          cause: isEn ? 'Stolen Item' : 'Çalınan Nesne',
+          specialTab: 'CCTV',
+          clues: isEn ? 'Physical Evidence' : 'Fiziksel Kanıtlar'
+        },
+        icons: { special: <Video size={16} />, victim: <Shield size={24} /> },
+        colors: { accent: 'text-amber-500', border: 'border-amber-800', button: 'bg-amber-700 hover:bg-amber-600' }
+      }
+    };
+    return configs[dept];
+  }, [dept, isEn]);
 
-  const config = deptConfig[dept];
+  const config = deptConfig;
 
   useEffect(() => {
     if (activeTab !== caseFile.lastActiveTab) {
       onUpdateCase({ ...caseFile, lastActiveTab: activeTab });
     }
-  }, [activeTab, caseFile, onUpdateCase]);
+  }, [activeTab, caseFile.lastActiveTab, onUpdateCase, caseFile]);
 
   const handleMicToggle = async () => {
     if (!isMicActive) {
@@ -124,19 +131,20 @@ const GameScreen: React.FC<GameScreenProps> = ({ caseFile, onUpdateCase, onRetur
   const cancelAccusation = () => setSuspectToAccuse(null);
 
   const updateInterrogationState = (messages: ChatMessage[], count: number) => {
+    // Only update if actually changed to prevent loops
     if (messages.length !== caseFile.messages.length || count !== caseFile.questionsUsed) {
       onUpdateCase({ ...caseFile, messages, questionsUsed: count });
     }
   };
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = useMemo(() => [
     { id: 'case', label: isEn ? 'Case File' : 'Dosya', icon: <FileText size={16} /> },
     { id: 'special', label: config.labels.specialTab, icon: config.icons.special },
     { id: 'location', label: isEn ? 'Map' : 'Harita', icon: <MapPin size={16} /> },
     { id: 'suspects', label: isEn ? 'Suspects' : 'Şüpheliler', icon: <Users size={16} /> },
     { id: 'clues', label: isEn ? 'Evidence' : 'Deliller', icon: <Search size={16} /> },
     { id: 'interrogation', label: isEn ? 'Interrogation' : 'Sorgu', icon: <MessageSquare size={16} /> },
-  ];
+  ], [isEn, config]);
 
   return (
     <div className={`flex flex-col h-full gap-4 animate-fade-in pb-10 relative ${isRedNotice ? 'p-2 border-2 border-red-600 rounded-lg shadow-[0_0_50px_rgba(220,38,38,0.2)]' : ''}`}>
@@ -420,6 +428,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ caseFile, onUpdateCase, onRetur
       </div>
     </div>
   );
-};
+});
 
 export default GameScreen;

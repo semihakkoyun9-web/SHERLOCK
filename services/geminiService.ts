@@ -1,17 +1,14 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Scenario, Department } from '../types';
 
-// REMOVED GLOBAL INITIALIZATION TO PREVENT CRASH ON LOAD
-// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize the Gemini API client
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const MODEL_NAME = "gemini-2.5-flash";
-
-// Helper to safely get AI instance
-// This prevents the "API Key must be set" error from crashing the whole app on Vercel startup
-const getAI = () => {
-  const apiKey = process.env.API_KEY || "MISSING_KEY_PLACEHOLDER"; 
-  return new GoogleGenAI({ apiKey });
-};
+// Select models according to guidelines
+const COMPLEX_MODEL = 'gemini-3-pro-preview';
+const BASIC_MODEL = 'gemini-3-flash-preview';
+const MAPS_MODEL = 'gemini-2.5-flash-preview'; // Maps grounding supported in 2.5 series
 
 export const generateScenario = async (department: Department, language: 'tr' | 'en' = 'tr'): Promise<Scenario> => {
   
@@ -133,11 +130,9 @@ export const generateScenario = async (department: Department, language: 'tr' | 
   `;
 
   try {
-    // Initialize AI here (Lazy Load)
-    const ai = getAI();
-    
+    // Generate content using the complex model
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: COMPLEX_MODEL,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -199,6 +194,7 @@ export const generateScenario = async (department: Department, language: 'tr' | 
       }
     });
 
+    // Access response text as a property
     const text = response.text;
     if (!text) throw new Error("Scenario generation failed.");
     
@@ -232,13 +228,12 @@ export const checkAnswerWithAI = async (scenario: Scenario, question: string, la
   `;
 
   try {
-    // Initialize AI here (Lazy Load)
-    const ai = getAI();
-    
+    // Basic Q&A using the flash model
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: BASIC_MODEL,
       contents: prompt,
     });
+    // Use .text property
     return response.text?.trim() || (isEn ? "Data Error." : "Veri hatası.");
   } catch (error) {
     return isEn ? "Connection Error." : "Bağlantı hatası.";
@@ -258,11 +253,9 @@ export const getLocationIntel = async (city: string, locationName: string, langu
   `;
 
   try {
-    // Initialize AI here (Lazy Load)
-    const ai = getAI();
-    
+    // Maps grounding requires gemini-2.5 series
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: MAPS_MODEL,
       contents: prompt,
       config: {
         tools: [{ googleMaps: {} }],
@@ -270,6 +263,7 @@ export const getLocationIntel = async (city: string, locationName: string, langu
     });
 
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    // Use .text property
     const text = response.text || (isEn ? "Intel report failed." : "İstihbarat raporu oluşturulamadı.");
 
     return { text, sources: groundingChunks };
