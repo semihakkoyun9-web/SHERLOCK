@@ -343,7 +343,7 @@ export default function App() {
               </div>
 
               <div className="mt-auto grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
-                 {/* BOMB DISPOSAL GUIDE BUTTON - UPDATED URL */}
+                 {/* BOMB DISPOSAL GUIDE BUTTON - LINK UPDATED */}
                  <div onClick={() => window.open('https://bomba-imha.vercel.app/', '_blank')} className={`p-6 rounded-xl border-2 flex items-center justify-between cursor-pointer group transition-all hover:scale-[1.02] bg-blue-950/20 border-blue-900 hover:border-blue-500`}>
                     <div className="flex items-center gap-4">
                        <div className="p-3 bg-blue-600 rounded-lg text-white group-hover:animate-pulse">

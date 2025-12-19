@@ -2,22 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Scenario, Department } from '../types';
 
-// Initialize the Gemini API client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Select models according to guidelines
 const COMPLEX_MODEL = 'gemini-3-pro-preview';
 const BASIC_MODEL = 'gemini-3-flash-preview';
 const MAPS_MODEL = 'gemini-2.5-flash-preview'; // Maps grounding supported in 2.5 series
 
 export const generateScenario = async (department: Department, language: 'tr' | 'en' = 'tr'): Promise<Scenario> => {
-  
+  // Initialize inside function to avoid top-level crash
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const isEn = language === 'en';
 
   let deptPrompt = "";
   let deptSchemaProps: any = {};
 
-  // Define unique data requirements based on department
   if (department === 'homicide') {
     deptPrompt = isEn ? `
       HOMICIDE CASE:
@@ -36,10 +33,10 @@ export const generateScenario = async (department: Department, language: 'tr' | 
       autopsy: {
         type: Type.OBJECT,
         properties: {
-          timeOfDeath: { type: Type.STRING, description: isEn ? "Time of death est." : "Ölüm saati tahmini" },
-          toxicology: { type: Type.STRING, description: isEn ? "Blood analysis" : "Kan değerleri ve madde analizi" },
-          wounds: { type: Type.STRING, description: isEn ? "Wound analysis" : "Yara analizi" },
-          notes: { type: Type.STRING, description: isEn ? "Medical examiner notes" : "Adli tabip özel notu" }
+          timeOfDeath: { type: Type.STRING },
+          toxicology: { type: Type.STRING },
+          wounds: { type: Type.STRING },
+          notes: { type: Type.STRING }
         }
       }
     };
@@ -48,14 +45,10 @@ export const generateScenario = async (department: Department, language: 'tr' | 
       CYBER CRIMES CASE:
       Theme: Matrix / Hacker / Mr. Robot. Technical, cold, digital.
       SPECIAL: Create 'serverLogs' list.
-      Victim: A "Company", "Server", or "Developer".
-      Cause: Hack method (DDoS, Ransomware, Phishing).
     ` : `
       SİBER SUÇLAR VAKASI:
       Tema: Matrix / Hacker / Mr. Robot. Teknik, soğuk, dijital.
-      ÖZEL İSTEK: 'serverLogs' (sunucu kayıtları) listesi oluştur. Bu loglar saldırının hikayesini anlatmalı.
-      Kurban: Bir "Şirket", "Sunucu" veya "Yazılımcı".
-      Ölüm Sebebi: Hack yöntemi (DDoS, Ransomware, Phishing).
+      ÖZEL İSTEK: 'serverLogs' listesi oluştur.
     `;
     deptSchemaProps = {
       serverLogs: {
@@ -63,9 +56,9 @@ export const generateScenario = async (department: Department, language: 'tr' | 
         items: {
           type: Type.OBJECT,
           properties: {
-            timestamp: { type: Type.STRING, description: "YYYY-MM-DD HH:MM:SS" },
-            ip: { type: Type.STRING, description: "Masked IP" },
-            action: { type: Type.STRING, description: "Action taken" },
+            timestamp: { type: Type.STRING },
+            ip: { type: Type.STRING },
+            action: { type: Type.STRING },
             status: { type: Type.STRING, enum: ["SUCCESS", "FAILED", "WARNING"] }
           }
         }
@@ -74,16 +67,12 @@ export const generateScenario = async (department: Department, language: 'tr' | 
   } else if (department === 'theft') {
     deptPrompt = isEn ? `
       THEFT / BURGLARY CASE:
-      Theme: Ocean's 11 / Heist. Planned, time-focused.
+      Theme: Ocean's 11 / Heist.
       SPECIAL: Create 'surveillance' timeline logs.
-      Victim: Museum, Bank, or Collector.
-      Cause: Stolen Item.
     ` : `
       HIRSIZLIK MASASI VAKASI:
-      Tema: Ocean's 11 / Büyük Soygun. Planlı, zaman odaklı.
-      ÖZEL İSTEK: 'surveillance' (güvenlik kamerası) zaman çizelgesi oluştur. Hırsızın veya şüphelilerin hareketlerini parça parça göster.
-      Kurban: Müze, Banka veya Koleksiyoner.
-      Ölüm Sebebi: Çalınan Değerli Eser.
+      Tema: Ocean's 11 / Büyük Soygun.
+      ÖZEL İSTEK: 'surveillance' zaman çizelgesi oluştur.
     `;
     deptSchemaProps = {
       surveillance: {
@@ -91,9 +80,9 @@ export const generateScenario = async (department: Department, language: 'tr' | 
         items: {
           type: Type.OBJECT,
           properties: {
-            time: { type: Type.STRING, description: "Time (02:15 AM)" },
-            camera: { type: Type.STRING, description: "Camera Location" },
-            observation: { type: Type.STRING, description: "What was seen" }
+            time: { type: Type.STRING },
+            camera: { type: Type.STRING },
+            observation: { type: Type.STRING }
           }
         }
       }
@@ -105,32 +94,16 @@ export const generateScenario = async (department: Department, language: 'tr' | 
     LANGUAGE: ENGLISH
     DEPARTMENT: ${department.toUpperCase()}
     ${deptPrompt}
-
-    GENERAL RULES:
-    Location: A real city and specific place.
-    SUSPECTS (4 people): All have motive and alibi. One is lying (Killer).
-    IMPORTANT: Fill department specific data (autopsy/serverLogs/surveillance).
-    MAP: Create 'mapPoints'. One MUST be type='evidence' containing the critical clue revealing the killer.
-    
     Output JSON.
   ` : `
-    Sen usta bir interaktif gizem oyunusun. Aşağıdaki departman için benzersiz bir vaka oluştur.
+    Sen usta bir interaktif gizem oyunusun. Benzersiz bir vaka oluştur.
     DİL: TÜRKÇE
     DEPARTMAN: ${department.toUpperCase()}
     ${deptPrompt}
-
-    GENEL KURALLAR:
-    Mekan: Gerçek bir şehir ve spesifik bir yer.
-    ŞÜPHELİLER (4 kişi): Hepsinin güçlü motifi ve alibisi olsun. Biri yalan söylüyor (Katil/Suçlu).
-    
-    ÖNEMLİ: Departmana özel verileri (autopsy/serverLogs/surveillance) doldur.
-    AYRICA: Olay yeri krokisi için 'mapPoints' oluştur. Bu noktalardan BİRİ (type='evidence') katilin kimliğini ele veren kritik ama gizli bir ipucu içermeli (Örn: Katilin isminin baş harfi olan bir eşya, ona ait bir aksesuar vb.).
-    
     JSON formatında çıktı ver.
   `;
 
   try {
-    // Generate content using the complex model
     const response = await ai.models.generateContent({
       model: COMPLEX_MODEL,
       contents: prompt,
@@ -180,11 +153,11 @@ export const generateScenario = async (department: Department, language: 'tr' | 
                 type: Type.OBJECT,
                 properties: {
                    id: { type: Type.STRING },
-                   x: { type: Type.NUMBER, description: "0-100 X coord" },
-                   y: { type: Type.NUMBER, description: "0-100 Y coord" },
+                   x: { type: Type.NUMBER },
+                   y: { type: Type.NUMBER },
                    label: { type: Type.STRING },
                    type: { type: Type.STRING, enum: ['body', 'evidence', 'blood', 'entry', 'other'] },
-                   description: { type: Type.STRING, description: "Detail when clicked." }
+                   description: { type: Type.STRING }
                 }
               }
             },
@@ -194,10 +167,8 @@ export const generateScenario = async (department: Department, language: 'tr' | 
       }
     });
 
-    // Access response text as a property
     const text = response.text;
     if (!text) throw new Error("Scenario generation failed.");
-    
     return JSON.parse(text) as Scenario;
   } catch (error) {
     console.error("Scenario Error:", error);
@@ -206,34 +177,25 @@ export const generateScenario = async (department: Department, language: 'tr' | 
 };
 
 export const checkAnswerWithAI = async (scenario: Scenario, question: string, language: 'tr' | 'en' = 'tr'): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const isEn = language === 'en';
   const prompt = isEn ? `
-    You are a database assistant in a detective game.
+    Detective game database assistant.
     SCENARIO: ${JSON.stringify(scenario)}
     QUESTION: "${question}"
-    
-    Roleplay: Answer only with available data. No opinions.
-    If asked "Who is the killer?", say "Access Denied".
-    Short, professional answers.
-    Use terms like "Affirmative", "Negative", "Unknown", "Not in file", "Access Denied".
+    Roleplay: Answer only with available data. Short, professional.
   ` : `
-    Sen bir dedektiflik oyununda veritabanı asistanısın.
+    Dedektiflik oyunu veritabanı asistanısın.
     SENARYO: ${JSON.stringify(scenario)}
     SORU: "${question}"
-    
-    Rolün gereği, sadece elindeki verilerle cevap ver. Yorum yapma.
-    "Katil kim?" gibi sorulara "Bu bilgiye erişiminiz yok" de.
-    Kısa, net ve profesyonel cevaplar ver.
-    Cevaplarında "Evet", "Hayır", "Bilinmiyor", "Dosyada yok" veya "Erişim Reddedildi" kalıplarını kullanmaya çalış.
+    Sadece verilerle cevap ver. Kısa ve net ol.
   `;
 
   try {
-    // Basic Q&A using the flash model
     const response = await ai.models.generateContent({
       model: BASIC_MODEL,
       contents: prompt,
     });
-    // Use .text property
     return response.text?.trim() || (isEn ? "Data Error." : "Veri hatası.");
   } catch (error) {
     return isEn ? "Connection Error." : "Bağlantı hatası.";
@@ -241,19 +203,11 @@ export const checkAnswerWithAI = async (scenario: Scenario, question: string, la
 };
 
 export const getLocationIntel = async (city: string, locationName: string, language: 'tr' | 'en' = 'tr'): Promise<{ text: string, sources?: any[] }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const isEn = language === 'en';
-  const prompt = isEn ? `
-    Location Intelligence: ${locationName}, ${city}.
-    Provide a short, tactical report about security, entrances, and atmosphere.
-    For a Detective or SWAT team.
-  ` : `
-    Konum İstihbaratı: ${locationName}, ${city}.
-    Bu konumun güvenlik durumu, giriş-çıkış noktaları ve atmosferi hakkında kısa, taktiksel bir rapor ver.
-    Dedektif veya Operasyon timi için hazırla.
-  `;
+  const prompt = isEn ? `Location Intelligence: ${locationName}, ${city}. Tactics and security.` : `Konum İstihbaratı: ${locationName}, ${city}. Güvenlik ve taktik raporu.`;
 
   try {
-    // Maps grounding requires gemini-2.5 series
     const response = await ai.models.generateContent({
       model: MAPS_MODEL,
       contents: prompt,
@@ -261,12 +215,10 @@ export const getLocationIntel = async (city: string, locationName: string, langu
         tools: [{ googleMaps: {} }],
       },
     });
-
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    // Use .text property
-    const text = response.text || (isEn ? "Intel report failed." : "İstihbarat raporu oluşturulamadı.");
-
-    return { text, sources: groundingChunks };
+    return { 
+      text: response.text || (isEn ? "Intel failed." : "İstihbarat hatası."), 
+      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+    };
   } catch (error) {
     throw error;
   }
